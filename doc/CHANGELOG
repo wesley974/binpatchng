@@ -1,0 +1,113 @@
+binpatchng 2.1.3
+----------------
+
+- Drop (x)etc sets
+- Add support for setting REVISION
+- Various documentation tweaks
+
+binpatchng 2.1.2
+----------------
+
+- Rework how PATCH_NAME is set, resolving two issues:
+  - "@comment patch for" got populated incorrectly
+  - pre-populating PATCH_COMMON/PATCH_KERNEL didn't work anymore
+
+binpatchng 2.1.1
+----------------
+
+- Improved handling of variables that may be shadowed by variables
+  intended for ports.
+
+binpatchng 2.1.0
+----------------
+
+- For patches with both libraries and binaries, ensure the binaries link with
+  the new libraries.
+- Support building a package's components in parallel via PARALLEL_BUILDS.
+- Make handling directories in the PLIST more robust as to prevent warnings
+  upon package removal.
+
+binpatchng 2.0.0
+----------------
+
+- Verify patches with signify(1).
+- Default to signing packages with signify(1).
+
+binpatchng 1.9.8
+----------------
+
+- Make $FIND_OPTS a per-patch setting for finer control.
+- Use correct wrksrc directory for Xenocara patches.
+- Cleanup /var/db/binpatch upon removal of the binpatch.
+- Unbreak 'install' target if the package wasn't yet built.
+- Remove support for non-package (i.e. tar) mode.
+
+binpatchng 1.9.6
+----------------
+
+- Allow building binpatches on architectures where the application architecture
+  is not equal to the kernel architecture. Fixes building on various platforms
+  such as 'arm', 'mips64', etc.
+
+binpatchng 1.9.4
+----------------
+
+- Adjust bsd.mp handling on clean installs and don't do any kernel tasks
+  for non-kernel patches.
+- When performing a rollback, fixup permissions just like we do for install.
+- Preserver permissions when copying the rollback kernel.
+
+binpatchng 1.9.2
+----------------
+
+- Adjust kernel installation to behave like the OpenBSD installer with regard
+  to installing bsd.mp on systems with multiple processors.
+- Tweak rollback procedure for systems without bsd.mp
+- Adjust dependencies in bsd.binpatch.mk
+- Sign packages by default
+
+binpatchng 1.9
+--------------
+
+- add FIND_OPTS to allow appending to the default find(1) options when searching
+  for modified files.
+- rename binpatch packages to binpatch${OSREV}-${ARCH}-${component}-${VERSION},
+  like binpatch52-amd64-kernel-1.0.
+- add a new 'fetch' target which moves all the retrieving of distfiles
+  from 'extract' and 'init' into a standalone 'fetch' target
+- mention the named patches used to build a particular binpatch in
+  DESCR, instead of listing the full patch. the full patch is stored
+  in /var/db/binpatch/
+- fix install target for packages
+- allow for binpatches to get updated. this means that updates work
+  with binpatches just like they do with other packages.
+- fine grained rollback support allowing to rollback nothing,
+  everything or just kernels.
+- make it possible to set a maintainer of the package.
+- simplify MASTER_SITE and DIST_SUBDIR handling.
+- store a FULLPKGPATH in the package, like pkgpath=/binpatchng/52/001
+- 'make depend' is no longer needed for kernel compiles.
+- make FTP transfers less verbose by default and ensure all transfers
+  use the FETCH_CMD variable, instead of hardcoding 'ftp'.
+- make it possible to override the FTP arguments, to allow for
+  transfers through picky firewalls if needed.
+- various cleanups.
+
+binpatchng 1.2
+--------------
+
+- support the signing mechanism from pkg_create in OpenBSD 4.5.
+- proper signing support for gzsig.
+- fix behaviour when patch is downloaded and used, this could lead to an
+  empty patch name.
+- Makefiles all through OpenBSD 4.0 to 4.5.
+
+
+binpatchng 1.1
+--------------
+
+- stick ${OSREV} into the stagingarea name, so that no harm happens if
+  the stagingarea is not cleared in between OS upgrades.
+- embedded check wether a rollback package actually exists, before trying
+  to rollbacking it.
+- various cleanups.

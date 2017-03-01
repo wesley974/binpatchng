@@ -1,0 +1,371 @@
+<!--
+	style:
+	- application names: _make(1)_
+	  - but use <i>pkg\_foo(8)</i> if there's an underscore already
+	- code/commandline/filenames/variables: > `code`
+	- make(1) targets: _target_
+-->
+
+The binpatch-ng framework
+=========================
+
+Table of contents
+
+1. [About](#about)
+    1. [What is binpatch-ng](#whatis)
+    2. [History](#history)
+2. [Why binary patches](#why)
+3. [Using binpatch](#using)
+    1. [Maintenance](#maint)
+    2. [Adding a new patch](#adding)
+    3. [Building a binary patch](#building)
+    4. [Parallel building](#parallel)
+    5. [Signing binary patches](#signing)
+    6. [Installation](#installation)
+4. [Download](#download)
+5. [TODO](#todo)
+6. [Support](#download)
+
+<a name="about" /></a>
+1. About
+--------
+
+<a name="whatis" /></a>
+### 1.1 What is binpatch-ng
+
+binpatch-ng is a framework for creating binary patches for OpenBSD on all
+platforms in a semi-automatic way.
+It can automatically download the source patches published on
+[OpenBSD.org/errata.html](http://www.openbsd.org/errata.html), apply them,
+build them, and package the result into binary patches that can be
+installed (and uninstalled) using the OpenBSD <i>pkg\_\*</i> tools, <i>pkg\_add(1)</i>
+and <i>pkg\_delete(1)</i>. Since the binary patches are installed with the
+pkg tools, they are also shown when <i>pkg\_info(1)</i> is run.
+
+The names of the patches that lead up to this binpatch are included in
+the DESCR and can be queried with <i>pkg\_info(1)</i>. The actual
+patches themselves are stored in `/var/db/binpatch/`.
+
+
+<a name="history" /></a>
+### 1.2 History
+
+It is derived from the original binpatch for
+OpenBSD as released in Version 1.0 by [Gerardo Santana](mailto:gerardo_DOT_santana_AT_gmail_DOT_com>)
+and has since been maintained and further developed by [M:Tier](http://www.mtier.org).
+
+Up to version 1.2 it was maintained by Felix Kronlage who merged back
+signed packages and implemented inital rollback support. As of 1.9 it has
+been maintained by Jasper Lievisse Adriaanse and various new features
+have been added included fine-grained rollback support as well as
+updatable packages. Also a new naming scheme has been adopted to
+facilitate aforementioned updates.
+
+For a full list of changes please refer to the changelog.
+
+
+<a name="why" /></a>
+2. Why binary patches
+---------------------
+
+Binary patches are a convenient way to keep your servers up to date with
+security and reliability patches.  Unlike the traditional method of patching
+the source tree, applying binary patches doesn't need extra disk space to
+hold the whole source tree, compilers or a powerful enough CPU to build the
+programs patched in a reasonable period of time.
+Especially looking at environments where more than just a few machines need
+to be kept up-to-date a solution is needed where patches can easily be
+pushed from a master to N clients.
+
+
+<a name="using" /></a>
+3. Using binpatch
+-----------------
+
+The binpatch framework resembles the OpenBSD ports subsystem in many ways.
+It's no coincidence since binpatch took ideas from the OpenBSD ports
+subsystem.
+
+binpatch is a make script with routines that automate downloading, applying,
+building and packaging binary patches. Using binpatch means executing the
+following tasks: maintenance, building and installation.
+
+Maintenance and building are not intended for end users of binary patches. If
+you are insterested only on installing a binary patch you can safely skip the
+following two sections.
+
+<a name="maint" /></a>
+### 3.1 Maintenance
+
+The magic in binpatch must be invoked by a custom Makefile that informs
+binpatch about available patches and how they should be built. It's similar
+to making a port, where you need to write a Makefile with directions  about how
+a port must be built. A sample self-documented Makefile is included in this
+distribution. After editing a Makefile, we have to build the patched files.
+
+This is the sequence of targets:
+
+1. _init_: "fake" install of a complete OpenBSD system
+2. _extract_: unpacks the OpenBSD sources
+3. _patch_: downloads the patch given from the master site and applies it
+4. _build_: builds the programs/libraries affected
+5. _plist_: creates the PLIST with the names of the files modified
+6. _package_: creates the final package
+
+The binpatch directory structure must be like this:
+
+<pre>
+<code>
+binpatchng/
+	|
+	+--- Makefile
+	|
+	+--- bin/
+	|    |
+	|    + install.sh
+	|    |
+	|    + plist.pl
+	|
+	+--- distfiles/
+	|    |
+	|    + ${OSREV}/
+	|       |
+	|       + amd64/ (installation sets)
+	|   	|
+	|    	+ src.tar.gz
+	|    	|
+	|    	+ sys.tar.gz
+	|    	|
+	|    	+ xenocara.tar.gz
+	|
+	|--- doc/
+	|    |
+	|    + CHANGELOG
+	|    |
+	|    + COPYRIGHT
+	|    |
+	|    + README
+	|
+	+--- mk/
+	|    |
+	|    + bsd.binpatch.mk
+	|
+	+--- patches/
+	|	|
+	|	+--- common/
+	|
+	+--- work-binpatch-${OSREV}/
+		|
+		+--- fake/
+		|
+		+--- obj/
+		|
+		+--- src/
+		|
+		+--- work/
+</code>
+</pre>
+
+All directories are created by binpatch.
+
+Building the patches files is as easy as:
+
+> `make PATCH="001" build`
+
+or:
+
+> `make PATCH="001"`
+
+since _build_ is the default target. _build_ will run all the previous steps
+needed.
+
+After that, run the _plist_ target:
+
+> `make PATCH="001" plist`
+
+You'll get a `PLIST` file under pkg with the name of the modified files.
+Builders of binary patches will use this file to package binary patches.
+
+**WARNING:** binpatch is not aware of any dependency between patches. You have
+to build them sequentially. DO NOT clean anything.
+
+<a name="adding" /></a>
+### 3.2 Adding a new patch
+
+When adding a new patch some care must be taken. The patch needs to be
+placed into the correct queue. The following queues are supported:
+
+1. `PATCH_COMMON` - Patches for userland and xenocara.
+2. `PATCH_KERNEL` - Patches for the  kernel parts.
+
+The patches are named corresponding to the filename, such as
+`001_openssl` if the patch applies to OpenSSL.
+
+It is also possible to use patches that have not been issued by
+OpenBSD, but that still need to be built. For example because they
+correct an issue that OpenBSD did not release errata for, or because
+they deal with an issue specific to your setup. These patches need to
+have `extra` prepended to the version, like `extra001_ypldap`. They
+will need to be placed into the correct queue still.
+
+`extra` patches can follow a versioning scheme independent of the
+regular patches and can thus start at '001'. But within the set of
+`extra` patches the versions must be incremental.
+
+The final package will have a version that equals the number of
+patches that have been applied to the component. Thus if one patch has
+been applied the version equals 1.0, if three patches have been applied
+the version equals 3.0.
+
+After adding the patch to the list of patches a target needs to be
+added to the Makefile which tells BinpatchNG how to actually build the
+patch. Some examples are given in the default Makefile, for example
+for a kernel patch:
+
+`001_acpi: _kernel`
+
+For a simple program which is normally built using a simple
+`Makefile`:
+
+<code>
+<pre>
+002\_ksh:
+	cd ${WRKSRC}/bin/ksh && (${\_obj}; ${\_cleandir}; ${\_depend} && ${\_build}
+</pre>
+</code>
+
+For programs which are built with Makefile.bsd-wrapper the target is a
+bit more involved:
+
+<code>
+<pre>
+003\_bind:
+	cd ${WRKSRC}/usr.sbin/bind && (${\_obj\_wrp}; ${\_depend\_wrp}; ${\_build\_wrp}; ${\_install\_wrp})
+</pre>
+</code>
+
+<a name="building" /></a>
+### 3.3 Building a binary patch
+
+> `make PATCH="001" package`
+
+That's it. This will create a `binpatch${_OSREV}-${ARCH}-${COMPONENT}-1.0.tgz` file in the
+`pkg/` directory. The `${COMPONENT}` part reflects which part of the
+system is being patched. For kernel patches this will be `kernel`, for
+other patches this will be the actual program/library, ie. `openssl`.
+`${_OSREV}` is set to `${OSREV}` minus the dot.
+
+If one wants to create simple tarballs with the binary patches, instead of
+packages installable with the <i>pkg\_\*</i> tools, one can pass the option `MODE=TGZ`
+to the make calles:
+
+> `make PATCH="001" MODE="TGZ" package`
+
+However, this must be done throughout the _plist_ as well as the _package_
+steps.
+
+<a name="parallel" /></a>
+### 3.4 Parallel building
+
+By setting `PARALLEL_BUILD` to `yes` make(1) will spawn as many jobs as
+CPUs/cores are available to build a particular component of the package.
+
+If this number, equal to `sysctl hw.ncpu`, is not satisfactory it can be
+globally overriden by setting `PARALLEL_JOBS` to the desired number of jobs.
+
+_NB: This does not mean that multiple packages can be built in parallel._
+
+<a name="signing" /></a>
+### 3.5 Signing a binary patch
+
+binpatchng supports two mechanisms for signing binary patches.
+One is via _gzsig(1)_ and ssh-keys. The other is based on the capability
+of OpenBSD 4.5's <i>pkg\_create(1)</i> to embedd x509 signatures.
+
+**3.5.1 Signing binary patches with _gzsig(1)_**
+
+In order to sign binary patches with gzsig, you need to have a private
+ssh-key. The framework will automatically use this key to sign binary
+patches if the `SIGNKEY` variable is set.
+The users of your binary patches can use the public part of your ssh key
+to verify the signature using _gzsig(1)_.
+
+If you want to use your ssh key, point `SIGNKEY` to a valid ssh private key.
+This is best done in the Makefile used to build your binary patches.
+
+**3.5.2 Verification of signatures done with gzsig(1)**
+
+In order to verify the signature placed into the binary patch, you use _gzsig(1)_ as well:
+
+       $ gzsig verify id_rsa.pub binpatch52-amd64-kernel-1.0.tgz
+
+**3.5.3 Signing binary patches with <i>pkg\_create(1)</i>**
+
+This feature is only present on OpenBSD 4.5 and newer.
+
+In order to use this feature, you need to have a proper x509
+Certificate Authority in place, as well as a x509 certificate signed by
+this Certficate Authority. The user who wants to verify the signature
+then again need the certificate (NOT THE KEY) of that Certificate Authority.
+
+<i>pkg\_create(1)</i> takes three arguments, all started with '-s':
+
+> `-s x509 -s /etc/ssl/pkgbuild.pem -s /etc/ssl/private/pkgbuildkey.pem`
+
+Which means:
+
+- use x509 (the only mechanism currently supported by <i>pkg\_create(1)</i>
+- `pkgbuild.pem` is the certificate
+- `pkgbuildkey.pem` is the key
+
+How to setup and create the Certs and Certificate Authority is out of the
+scope of this readme. If you have problems with that, drop me an e-mail.
+
+In order to use this mechanism to create signed binary patches, you have
+to set the variable `PKG_SIGN_STRING` to a string like above, again this
+is done in the Makefile used to build your binary patches.
+
+<a name="installation" /></a>
+### 3.6 Installation
+
+From within the binpatch subdirectory and after building the binary patch:
+
+> `make PATCH="001" install`
+
+or if you got the binary patch from somewhere else:
+
+> `pkg_add binpatch${_OSREV}-${ARCH}-${COMPONENT}-1.0.tgz`
+
+If you just created tarballs:
+
+> `tar xzpf binpatch${_OSREV}-${ARCH}-${COMPONENT}-1.0.tgz -C /`
+
+If you use the binary patch packages, you can also uninstall patches
+(rollback):
+
+> `pkg_delete binpatch${_OSREV}-${ARCH}-${COMPONENT}-1.0`
+
+If a new kernel is installed by the binary patches, you can boot the
+rollback kernel (previous working kernel) from the boot loader with:
+
+> `boot kernelname.rollback`
+
+<a name="download" /></a>
+4. Download
+-----------
+
+Binpatchng can be downloaded from it's [homepage](http://opensource.mtier.org/binpatchng.html#download).
+
+<a name="todo" /></a>
+5. TODO
+-------
+
+In no particular order of importance:
+
+- Merge regular build targets with their `_wrp` counterparts.
+
+<a name="support" /></a>
+6. Support
+----------
+
+In case you have questions or you need support please [contact us](mailto:binpatch@support.mtier.org).
