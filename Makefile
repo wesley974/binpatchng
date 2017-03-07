@@ -7,6 +7,10 @@
 # openssl x509 -sha256 -req -days 365 -in /pkgcrt/server.csr -signkey \
 #	/pkgcrt/server.key -out /pkgcrt/server.crt
 #
+# ln -sf /pkgcrt/server.key /pkgcrt/pkgbuildkey.pem
+# ln -sf /pkgcrt/server.crt /pkgcrt/pkgbuild.pem
+# ln -sf /pkgcrt/server.crt /etc/ssl/pkgca.pem
+#
 
 PKG_SIGN_STRING=-s x509 -s /pkgcrt/pkgbuild.pem -s /pkgcrt/pkgbuildkey.pem
 
