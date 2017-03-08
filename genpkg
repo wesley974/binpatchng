@@ -1,0 +1,5 @@
+#!/bin/ksh
+make PATCH="$1" patch
+make PATCH="$1" build
+make PATCH="$1" plist
+make PATCH="$1" package

@@ -20,11 +20,11 @@ PARALLEL_BUILD=yes
 
 MAINTAINER="Wesley MOUEDINE ASSABY <milo974@gmail.com>"
 
-# List of patches for userland/X11
-PATCH_COMMON=001_sshd 005_crypto 006_smtpd 009_crypto 010_libexpat 011_crypto 012_crypto 021_relayd 024_perl 025_relayd 027_libssl 028_libssl 029_xorg_libs 030_ssh_kexinit 031_smtpd 032_libssl 033_libcrypto 034_httpd
+# List of patches for userland, avoid X11 (029_xorg_libs)
+PATCH_COMMON=001_sshd #005_crypto 006_smtpd 009_crypto 010_libexpat 011_crypto 012_crypto 021_relayd 024_perl 025_relayd 027_libssl 028_libssl 030_ssh_kexinit 031_smtpd 032_libssl 033_libcrypto 034_httpd
 
 # List of kernel patches
-PATCH_KERNEL=002_in6bind 003_pledge 004_mbuf 007_uvideo 008_bnx 013_splice 014_unp 015_dirent 016_mmap 017_arp 018_timeout 019_kevent 020_amap 022_sysctl 023_uvmisavail 026_wsfont 035_net80211
+PATCH_KERNEL=#002_in6bind 003_pledge 004_mbuf 007_uvideo 008_bnx 013_splice 014_unp 015_dirent 016_mmap 017_arp 018_timeout 019_kevent 020_amap 022_sysctl 023_uvmisavail 026_wsfont 035_net80211
 
 # Define type of rollback support ('all' or 'kernel'), set to 'none' to disable.
 ROLLBACK=all
