@@ -1,0 +1,13 @@
+#!/bin/ksh
+# Errata 5.9
+
+for i in `jot $1`
+do
+[ "$i" -eq 29 ] && continue # no X11 support
+if [ "$(echo $i | wc -m)" -eq 2 ]; then
+	make PATCH="00$i" patch
+else
+  	make PATCH="0$i" patch
+fi
+[ "$?" -eq 1 ] && echo "ERROR for patch number $i" && exit
+done
